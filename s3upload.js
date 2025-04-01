@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const AWS = require("aws-sdk");
 const fse = require("fs-extra");
+const { getBucketObjectList, putObjectInBucket } = require("./s3-utils/s3Client");
 
 const app = express();
 const uploadDir = path.join(__dirname, "uploads");
@@ -41,11 +42,13 @@ app.post("/upload", upload.single("chunk"), async (req, res) => {
     fs.renameSync(req.file.path, chunkPath);
 
     console.log(`Received chunk ${index}/${totalChunks} for file ${fileName}`);
-
+    getBucketObjectList(bucketName);
     // If all chunks are received, merge and upload to S3
     if (parseInt(index) === parseInt(totalChunks) - 1) {
         const finalFilePath = await mergeChunks(fileName, totalChunks);
-        await uploadToS3(finalFilePath, fileName);
+        // await uploadToS3(finalFilePath, fileName);
+        let putResp = await putObjectInBucket(bucketName, finalFilePath, fileName);
+        console.log("putResp", putResp);
     }
 
     res.status(200).send("Chunk received");
